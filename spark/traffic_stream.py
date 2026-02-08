@@ -54,7 +54,7 @@ logger.info("🚀 Starting Smart City Traffic Stream Processor...")
 # Read stream from Kafka
 df_stream = spark.readStream \
     .format("kafka") \
-    .option("kafka.bootstrap.servers", "kafka:9092") \
+    .option("kafka.bootstrap.servers", "kafka:9093") \
     .option("subscribe", "traffic-data") \
     .option("startingOffsets", "latest") \
     .option("failOnDataLoss", "false") \

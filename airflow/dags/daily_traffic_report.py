@@ -11,8 +11,6 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from datetime import datetime, timedelta
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import logging
 import os
 
@@ -199,83 +197,23 @@ def store_daily_report(**context):
     
     logger.info("✅ Daily report stored successfully")
 
-def generate_visualizations(**context):
-    """Generate traffic analysis visualizations"""
-    logger.info("📈 Generating visualizations...")
+def generate_csv_report(**context):
+    """Generate CSV report with traffic analysis"""
+    logger.info("📄 Generating CSV report...")
     
     # Get data
-    hourly_stats_json = context['ti'].xcom_pull(task_ids='analyze_peak_hours')
-    traffic_json = context['ti'].xcom_pull(task_ids='extract_traffic_data')
     recommendations_json = context['ti'].xcom_pull(task_ids='generate_recommendations', key='recommendations')
-    
-    hourly_stats = pd.read_json(hourly_stats_json)
-    df = pd.read_json(traffic_json)
     recommendations = pd.read_json(recommendations_json)
     
     # Create reports directory if it doesn't exist
     os.makedirs('/opt/airflow/reports', exist_ok=True)
     
-    # Set style
-    sns.set_style("whitegrid")
-    plt.rcParams['figure.figsize'] = (14, 10)
-    
-    # Create figure with subplots
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle(f'Smart City Traffic Analysis - {(datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")}', 
-                 fontsize=16, fontweight='bold')
-    
-    # Plot 1: Traffic Volume by Hour for each Junction
-    for sensor in hourly_stats['sensor_id'].unique():
-        sensor_data = hourly_stats[hourly_stats['sensor_id'] == sensor]
-        axes[0, 0].plot(sensor_data['hour'], sensor_data['total_vehicles'], 
-                       marker='o', label=sensor, linewidth=2)
-    axes[0, 0].set_xlabel('Hour of Day')
-    axes[0, 0].set_ylabel('Total Vehicles')
-    axes[0, 0].set_title('Traffic Volume vs. Time of Day')
-    axes[0, 0].legend()
-    axes[0, 0].grid(True, alpha=0.3)
-    
-    # Plot 2: Average Speed by Junction
-    avg_speed_by_junction = df.groupby('sensor_id')['avg_speed'].mean().sort_values()
-    colors = ['red' if x < 15 else 'orange' if x < 25 else 'green' for x in avg_speed_by_junction]
-    axes[0, 1].barh(avg_speed_by_junction.index, avg_speed_by_junction.values, color=colors)
-    axes[0, 1].set_xlabel('Average Speed (km/h)')
-    axes[0, 1].set_title('Average Speed by Junction')
-    axes[0, 1].axvline(x=10, color='red', linestyle='--', label='Critical Threshold')
-    axes[0, 1].legend()
-    
-    # Plot 3: Congestion Index Heatmap
-    pivot_data = hourly_stats.pivot_table(
-        values='avg_congestion', 
-        index='sensor_id', 
-        columns='hour', 
-        aggfunc='mean'
-    )
-    sns.heatmap(pivot_data, annot=True, fmt='.1f', cmap='YlOrRd', ax=axes[1, 0], cbar_kws={'label': 'Congestion Index'})
-    axes[1, 0].set_title('Congestion Index Heatmap')
-    axes[1, 0].set_xlabel('Hour of Day')
-    axes[1, 0].set_ylabel('Junction')
-    
-    # Plot 4: Intervention Priority
-    rec_counts = recommendations.groupby('priority').size()
-    colors_pie = ['#ff4444' if x == 'HIGH' else '#44ff44' for x in rec_counts.index]
-    axes[1, 1].pie(rec_counts.values, labels=rec_counts.index, autopct='%1.1f%%', 
-                   colors=colors_pie, startangle=90)
-    axes[1, 1].set_title('Intervention Priority Distribution')
-    
-    plt.tight_layout()
-    
-    # Save figure
-    report_path = f'/opt/airflow/reports/daily_traffic_analysis_{datetime.now().strftime("%Y%m%d")}.png'
-    plt.savefig(report_path, dpi=300, bbox_inches='tight')
-    logger.info(f"📊 Visualization saved: {report_path}")
-    
     # Generate CSV report
     csv_path = f'/opt/airflow/reports/daily_traffic_report_{datetime.now().strftime("%Y%m%d")}.csv'
     recommendations.to_csv(csv_path, index=False)
-    logger.info(f"📄 CSV report saved: {csv_path}")
+    logger.info(f"✅ CSV report saved: {csv_path}")
     
-    plt.close()
+    return csv_path
 
 # Define the DAG
 with DAG(
@@ -311,11 +249,12 @@ with DAG(
         provide_context=True,
     )
 
-    visualize_task = PythonOperator(
-        task_id='generate_visualizations',
-        python_callable=generate_visualizations,
+    csv_report_task = PythonOperator(
+        task_id='generate_csv_report',
+        python_callable=generate_csv_report,
         provide_context=True,
     )
 
     # Define task dependencies
-    extract_task >> analyze_task >> recommendations_task >> [store_task, visualize_task]
+    extract_task >> analyze_task >> recommendations_task >> [store_task, csv_report_task]
+
