@@ -24,9 +24,9 @@ logger = logging.getLogger(__name__)
 spark = SparkSession.builder \
     .appName("SmartCityTrafficStream") \
     .config("spark.jars.packages", 
-            "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,"
+            "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1,"
             "org.postgresql:postgresql:42.6.0") \
-    .config("spark.sql.streaming.checkpointLocation", "/tmp/checkpoint") \
+    .config("spark.sql.streaming.checkpointLocation", "./spark-checkpoints") \
     .config("spark.sql.shuffle.partitions", "4") \
     .getOrCreate()
 
@@ -43,7 +43,7 @@ traffic_schema = StructType([
 
 # PostgreSQL configuration
 postgres_config = {
-    "url": "jdbc:postgresql://postgres:5432/trafficdb",
+    "url": "jdbc:postgresql://localhost:5432/trafficdb",
     "user": "airflow",
     "password": "airflow",
     "driver": "org.postgresql.Driver"
@@ -54,7 +54,7 @@ logger.info("🚀 Starting Smart City Traffic Stream Processor...")
 # Read stream from Kafka
 df_stream = spark.readStream \
     .format("kafka") \
-    .option("kafka.bootstrap.servers", "kafka:9093") \
+    .option("kafka.bootstrap.servers", "localhost:9092") \
     .option("subscribe", "traffic-data") \
     .option("startingOffsets", "latest") \
     .option("failOnDataLoss", "false") \

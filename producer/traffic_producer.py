@@ -6,6 +6,7 @@ Generates realistic traffic patterns with occasional congestion
 import json
 import time
 import random
+import os
 from kafka import KafkaProducer
 from datetime import datetime
 import logging
@@ -18,8 +19,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize Kafka Producer
+# Get Kafka host from environment variable or use localhost
+kafka_host = os.getenv('KAFKA_HOST', 'kafka:9092')
 producer = KafkaProducer(
-    bootstrap_servers=['localhost:9092'],  # Use localhost when running outside Docker
+    bootstrap_servers=[kafka_host],
     value_serializer=lambda v: json.dumps(v).encode('utf-8'),
     retries=5,
     retry_backoff_ms=1000
@@ -98,7 +101,7 @@ def main():
                     f"Index: {data['congestion_index']:.2f}"
                 )
             
-            time.sleep(2)  # Send data every 2 seconds (realistic sensor frequency)
+            time.sleep(2)  # Send data every 2 seconds
             
     except KeyboardInterrupt:
         logger.info(f"\n✅ Producer stopped. Total messages sent: {message_count}")

@@ -76,7 +76,7 @@ def analyze_peak_hours(**context):
         'vehicle_count': ['sum', 'mean'],
         'avg_speed': 'mean',
         'congestion_index': 'mean',
-        'traffic_status': 'sum'  # Count critical alerts
+        'traffic_status': 'sum'  
     }).reset_index()
     
     hourly_stats.columns = [
@@ -105,11 +105,6 @@ def generate_intervention_recommendations(**context):
     
     peak_hours_json = context['ti'].xcom_pull(task_ids='analyze_peak_hours', key='peak_hours')
     peak_hours = pd.read_json(peak_hours_json)
-    
-    # Criteria for intervention:
-    # 1. High congestion index (> 5.0)
-    # 2. Multiple critical alerts (> 10)
-    # 3. High vehicle count with low speed
     
     recommendations = []
     for _, row in peak_hours.iterrows():

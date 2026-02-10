@@ -202,7 +202,7 @@ services:
       kafka:
         condition: service_healthy
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_HOST: kafka:9093
 
   # ==================== SPARK STREAMING JOB ====================
   traffic-stream-processor:

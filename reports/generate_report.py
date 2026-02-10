@@ -106,7 +106,7 @@ def generate_comprehensive_report(output_dir='reports'):
     ax3.set_title('Congestion Index Distribution')
     ax3.set_xlabel('Junction')
     ax3.set_ylabel('Congestion Index')
-    plt.suptitle('')  # Remove automatic title
+    plt.suptitle('')  
     
     # 4. Critical Alerts Count
     ax4 = fig.add_subplot(gs[1, 2])

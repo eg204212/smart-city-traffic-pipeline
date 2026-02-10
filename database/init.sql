@@ -1,6 +1,5 @@
 -- Smart City Traffic Database Schema
 -- Initialize PostgreSQL database with required tables
-
 -- Main traffic data table (populated by Spark streaming)
 CREATE TABLE IF NOT EXISTS traffic_data (
     id SERIAL PRIMARY KEY,
