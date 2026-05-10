@@ -1,0 +1,37 @@
+============================================================
+SMART CITY TRAFFIC ANALYSIS SUMMARY
+============================================================
+
+Report Period: 2026-05-09 00:16:34.193627 to 2026-05-09 11:14:51.226817
+Total Records: 19,311
+Total Critical Alerts: 2,689
+
+------------------------------------------------------------
+JUNCTION STATISTICS
+------------------------------------------------------------
+
+J1_Galle_Road:
+  Total Vehicles: 574,998
+  Average Speed: 32.7 km/h
+  Average Congestion Index: 6.45
+  Critical Alerts: 725
+
+J2_Duplication_Road:
+  Total Vehicles: 479,402
+  Average Speed: 31.9 km/h
+  Average Congestion Index: 6.08
+  Critical Alerts: 896
+
+J3_Baseline_Road:
+  Total Vehicles: 384,229
+  Average Speed: 34.1 km/h
+  Average Congestion Index: 3.87
+  Critical Alerts: 546
+
+J4_Marine_Drive:
+  Total Vehicles: 320,132
+  Average Speed: 34.0 km/h
+  Average Congestion Index: 3.21
+  Critical Alerts: 522
+
+============================================================

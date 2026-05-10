@@ -50,6 +50,22 @@ services:
       timeout: 10s
       retries: 5
 
+  # Kafka UI for monitoring
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8090:8080"
+    networks:
+      - traffic-network
+    environment:
+      KAFKA_CLUSTERS_0_NAME: smart-city-traffic
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9093
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    depends_on:
+      - kafka
+      - zookeeper
+
   # ==================== SPARK ECOSYSTEM ====================
   spark-master:
     image: apache/spark:3.4.1
@@ -113,6 +129,37 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Database Admin UI
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    ports:
+      - "8082:8080"
+    networks:
+      - traffic-network
+    depends_on:
+      - postgres
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+
+  # Traffic Dashboard
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: traffic-dashboard
+    ports:
+      - "5000:5000"
+    networks:
+      - traffic-network
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://airflow:airflow@postgres:5432/trafficdb
+    volumes:
+      - ./dashboard/templates:/app/templates
+      - ./dashboard/app.py:/app/app.py
 
   # ==================== AIRFLOW ====================
   airflow-init:
@@ -215,13 +262,12 @@ services:
     depends_on:
       - kafka
       - postgres
-      - spark-master
     volumes:
       - ./spark:/opt/spark-apps
       - spark-checkpoints:/tmp/checkpoint
     command: >
       /opt/spark/bin/spark-submit 
-      --master spark://spark-master:7077
+      --master local[*]
       --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1,org.postgresql:postgresql:42.6.0
       --conf spark.sql.streaming.checkpointLocation=/tmp/checkpoint
       /opt/spark-apps/traffic_stream.py

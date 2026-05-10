@@ -14,7 +14,7 @@ DB_CONFIG = {
     'dbname': 'trafficdb',
     'user': 'airflow',
     'password': 'airflow',
-    'host': 'localhost',
+    'host': '127.0.0.1',
     'port': 5432
 }
 
@@ -56,9 +56,12 @@ def get_critical_alerts(days=7):
     
     return alerts_df
 
-def generate_comprehensive_report(output_dir='reports'):
+def generate_comprehensive_report(output_dir=None):
     """Generate comprehensive traffic analysis report"""
     
+    if output_dir is None:
+        output_dir = os.path.dirname(os.path.abspath(__file__))
+
     os.makedirs(output_dir, exist_ok=True)
     
     print("📊 Generating Comprehensive Traffic Report...")
@@ -74,76 +77,90 @@ def generate_comprehensive_report(output_dir='reports'):
     # Convert timestamp
     df['event_time'] = pd.to_datetime(df['event_time'])
     
-    # Create comprehensive visualization
-    fig = plt.figure(figsize=(20, 14))
-    gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.3)
+    # Set style for better visuals
+    plt.style.use('seaborn-v0_8-darkgrid')
+    sns.set_palette("husl")
+    
+    # Create comprehensive visualization with better spacing
+    fig = plt.figure(figsize=(20, 12))
+    gs = fig.add_gridspec(3, 2, hspace=0.4, wspace=0.3, top=0.94, bottom=0.06, left=0.06, right=0.96)
     
     # 1. Traffic Volume Over Time (All Junctions)
     ax1 = fig.add_subplot(gs[0, :])
-    for junction in df['sensor_id'].unique():
+    for junction in sorted(df['sensor_id'].unique()):
         junction_data = df[df['sensor_id'] == junction]
-        hourly = junction_data.set_index('event_time').resample('1H')['vehicle_count'].sum()
-        ax1.plot(hourly.index, hourly.values, marker='o', label=junction, linewidth=2)
-    ax1.set_title('Traffic Volume Over Time (Hourly)', fontsize=14, fontweight='bold')
-    ax1.set_xlabel('Time')
-    ax1.set_ylabel('Total Vehicles')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
+        hourly = junction_data.set_index('event_time').resample('1h')['vehicle_count'].sum()
+        ax1.plot(hourly.index, hourly.values, marker='o', label=junction.replace('_', ' '), 
+                linewidth=2, markersize=4)
+    ax1.set_title('Traffic Volume vs Time (Hourly Aggregation)', fontsize=14, fontweight='bold', pad=15)
+    ax1.set_xlabel('Time', fontsize=11)
+    ax1.set_ylabel('Total Vehicles', fontsize=11)
+    ax1.legend(loc='upper left', frameon=True, fontsize=10)
+    ax1.grid(True, alpha=0.3, linestyle='--')
+    ax1.tick_params(axis='x', rotation=30)
     
     # 2. Average Speed by Junction
     ax2 = fig.add_subplot(gs[1, 0])
     avg_speeds = df.groupby('sensor_id')['avg_speed'].mean().sort_values()
-    colors = ['red' if x < 15 else 'orange' if x < 25 else 'green' for x in avg_speeds]
-    ax2.barh(avg_speeds.index, avg_speeds.values, color=colors)
-    ax2.set_xlabel('Average Speed (km/h)')
-    ax2.set_title('Average Speed by Junction')
-    ax2.axvline(x=10, color='red', linestyle='--', label='Critical Threshold')
-    ax2.legend()
+    colors = ['#d62728' if x < 15 else '#ff7f0e' if x < 25 else '#2ca02c' for x in avg_speeds]
+    bars = ax2.barh(range(len(avg_speeds)), avg_speeds.values, color=colors, edgecolor='black', linewidth=0.7)
+    ax2.set_yticks(range(len(avg_speeds)))
+    ax2.set_yticklabels([label.replace('_', ' ') for label in avg_speeds.index], fontsize=10)
+    ax2.set_xlabel('Average Speed (km/h)', fontsize=11)
+    ax2.set_title('Average Speed by Junction', fontsize=13, fontweight='bold', pad=10)
+    ax2.axvline(x=10, color='red', linestyle='--', linewidth=2, label='Critical (<10 km/h)', alpha=0.7)
+    ax2.legend(fontsize=9)
+    ax2.grid(True, alpha=0.3, axis='x')
+    # Add value labels
+    for i, (bar, val) in enumerate(zip(bars, avg_speeds.values)):
+        ax2.text(val + 1, i, f'{val:.1f}', va='center', fontsize=9)
     
-    # 3. Congestion Index Distribution
+    # 3. Critical Alerts Count
     ax3 = fig.add_subplot(gs[1, 1])
-    df.boxplot(column='congestion_index', by='sensor_id', ax=ax3)
-    ax3.set_title('Congestion Index Distribution')
-    ax3.set_xlabel('Junction')
-    ax3.set_ylabel('Congestion Index')
-    plt.suptitle('')  
+    if not alerts.empty:
+        alert_counts = alerts.groupby('sensor_id').size().sort_values(ascending=False)
+        bars = ax3.bar(range(len(alert_counts)), alert_counts.values, color='#d62728', 
+                      alpha=0.7, edgecolor='black', linewidth=0.7)
+        ax3.set_xticks(range(len(alert_counts)))
+        ax3.set_xticklabels([label.replace('_', '\n') for label in alert_counts.index], 
+                           fontsize=9, rotation=0)
+        ax3.set_ylabel('Number of Alerts', fontsize=11)
+        ax3.set_title('Critical Traffic Alerts (Speed < 10 km/h)', fontsize=13, fontweight='bold', pad=10)
+        ax3.grid(True, alpha=0.3, axis='y')
+        # Add value labels
+        for bar, val in zip(bars, alert_counts.values):
+            ax3.text(bar.get_x() + bar.get_width()/2, val + 1, str(int(val)), 
+                    ha='center', va='bottom', fontsize=10, fontweight='bold')
+    else:
+        ax3.text(0.5, 0.5, 'No Critical Alerts', ha='center', va='center', 
+                fontsize=14, transform=ax3.transAxes)
+        ax3.set_title('Critical Traffic Alerts', fontsize=13, fontweight='bold', pad=10)
     
-    # 4. Critical Alerts Count
-    ax4 = fig.add_subplot(gs[1, 2])
-    alert_counts = alerts.groupby('sensor_id').size().sort_values(ascending=False)
-    ax4.bar(alert_counts.index, alert_counts.values, color='red', alpha=0.7)
-    ax4.set_title('Critical Alerts by Junction')
-    ax4.set_xlabel('Junction')
-    ax4.set_ylabel('Number of Alerts')
-    ax4.tick_params(axis='x', rotation=45)
-    
-    # 5. Hourly Traffic Pattern (Heatmap)
-    ax5 = fig.add_subplot(gs[2, :2])
+    # 4. Hourly Traffic Pattern (Heatmap)
+    ax4 = fig.add_subplot(gs[2, :])
     pivot = df.groupby(['sensor_id', 'hour_of_day'])['vehicle_count'].mean().reset_index()
     pivot_table = pivot.pivot(index='sensor_id', columns='hour_of_day', values='vehicle_count')
-    sns.heatmap(pivot_table, annot=True, fmt='.0f', cmap='YlOrRd', ax=ax5, cbar_kws={'label': 'Avg Vehicles'})
-    ax5.set_title('Average Vehicle Count Heatmap (Hour vs Junction)')
-    ax5.set_xlabel('Hour of Day')
-    ax5.set_ylabel('Junction')
+    pivot_table.index = [idx.replace('_', ' ') for idx in pivot_table.index]
     
-    # 6. Speed Distribution
-    ax6 = fig.add_subplot(gs[2, 2])
-    df['avg_speed'].hist(bins=30, ax=ax6, color='skyblue', edgecolor='black')
-    ax6.axvline(x=10, color='red', linestyle='--', linewidth=2, label='Critical Speed')
-    ax6.set_title('Speed Distribution')
-    ax6.set_xlabel('Speed (km/h)')
-    ax6.set_ylabel('Frequency')
-    ax6.legend()
+    sns.heatmap(pivot_table, annot=True, fmt='.0f', cmap='YlOrRd', ax=ax4, 
+               cbar_kws={'label': 'Avg Vehicles'}, linewidths=0.5, linecolor='gray',
+               annot_kws={'fontsize': 8})
+    ax4.set_title('Traffic Volume Heatmap: Junction vs Hour of Day', fontsize=13, fontweight='bold', pad=10)
+    ax4.set_xlabel('Hour of Day (0-23)', fontsize=11)
+    ax4.set_ylabel('Junction', fontsize=11)
+    ax4.tick_params(axis='x', labelsize=9)
+    ax4.tick_params(axis='y', labelsize=10, rotation=0)
     
     # Main title
-    fig.suptitle(f'Smart City Traffic Analysis Report - Last 7 Days', 
-                 fontsize=18, fontweight='bold', y=0.995)
+    fig.suptitle('Smart City Traffic Analysis Dashboard', 
+                 fontsize=18, fontweight='bold', y=0.98)
     
-    # Save figure
+    # Save figure with high quality
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     report_path = os.path.join(output_dir, f'traffic_report_{timestamp}.png')
-    plt.savefig(report_path, dpi=300, bbox_inches='tight')
+    plt.savefig(report_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
     print(f"✅ Report saved: {report_path}")
+    plt.close()
     
     # Generate summary statistics
     summary_path = os.path.join(output_dir, f'traffic_summary_{timestamp}.txt')
@@ -179,7 +196,9 @@ def generate_comprehensive_report(output_dir='reports'):
     df.to_csv(csv_path, index=False)
     print(f"✅ Data exported: {csv_path}")
     
-    plt.show()
+    print("\n" + "="*60)
+    print("📊 Report Generation Complete!")
+    print("="*60)
 
 if __name__ == "__main__":
     generate_comprehensive_report()

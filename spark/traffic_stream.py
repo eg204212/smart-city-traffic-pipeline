@@ -43,7 +43,7 @@ traffic_schema = StructType([
 
 # PostgreSQL configuration
 postgres_config = {
-    "url": "jdbc:postgresql://localhost:5432/trafficdb",
+    "url": "jdbc:postgresql://postgres:5432/trafficdb",
     "user": "airflow",
     "password": "airflow",
     "driver": "org.postgresql.Driver"
@@ -54,7 +54,7 @@ logger.info("🚀 Starting Smart City Traffic Stream Processor...")
 # Read stream from Kafka
 df_stream = spark.readStream \
     .format("kafka") \
-    .option("kafka.bootstrap.servers", "localhost:9092") \
+    .option("kafka.bootstrap.servers", "kafka:9093") \
     .option("subscribe", "traffic-data") \
     .option("startingOffsets", "latest") \
     .option("failOnDataLoss", "false") \

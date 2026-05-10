@@ -1,0 +1,55 @@
+======================================================================
+     SMART CITY TRAFFIC & CONGESTION MANAGEMENT SYSTEM
+              ANALYTICAL REPORT SUMMARY
+======================================================================
+
+Report Generated: 2026-02-10 11:06:46
+Data Period: 2026-02-07 17:38:36.973711 to 2026-02-10 03:52:05.636594
+
+----------------------------------------------------------------------
+OVERALL STATISTICS
+----------------------------------------------------------------------
+Total Traffic Records: 1,808
+Total Critical Alerts (Speed < 10 km/h): 259
+Junctions Monitored: 4
+Date Range: 3 day(s)
+
+----------------------------------------------------------------------
+JUNCTION-WISE ANALYSIS
+----------------------------------------------------------------------
+
+📍 J1 Galle Road
+   Peak Hour: 3:00 (32727 vehicles)
+   Average Speed: 32.4 km/h
+   Congestion Index: 4.13
+   Critical Alerts: 60
+   Intervention: YES
+   ⚠️  URGENT: Deploy traffic police immediately
+
+📍 J2 Duplication Road
+   Peak Hour: 3:00 (27644 vehicles)
+   Average Speed: 30.9 km/h
+   Congestion Index: 3.86
+   Critical Alerts: 90
+   Intervention: YES
+   ⚠️  URGENT: Deploy traffic police immediately
+
+📍 J3 Baseline Road
+   Peak Hour: 3:00 (21649 vehicles)
+   Average Speed: 32.8 km/h
+   Congestion Index: 2.56
+   Critical Alerts: 65
+   Intervention: YES
+   ⚠️  URGENT: Deploy traffic police immediately
+
+📍 J4 Marine Drive
+   Peak Hour: 3:00 (18181 vehicles)
+   Average Speed: 34.9 km/h
+   Congestion Index: 1.90
+   Critical Alerts: 44
+   Intervention: YES
+   ⚠️  URGENT: Deploy traffic police immediately
+
+======================================================================
+END OF REPORT
+======================================================================

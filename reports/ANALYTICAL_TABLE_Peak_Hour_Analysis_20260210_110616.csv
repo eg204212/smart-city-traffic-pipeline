@@ -1,0 +1,5 @@
+Junction,Peak Hour,Peak Vehicles,Total Vehicles,Avg Speed (km/h),Avg Congestion Index,Critical Alerts,Intervention Required,Recommendation
+J1 Galle Road,3:00,32727,33257,32.4,4.13,60,YES,URGENT: Deploy traffic police immediately
+J2 Duplication Road,3:00,27644,28104,30.9,3.86,90,YES,URGENT: Deploy traffic police immediately
+J3 Baseline Road,3:00,21649,21829,32.8,2.56,65,YES,URGENT: Deploy traffic police immediately
+J4 Marine Drive,3:00,18181,18341,34.9,1.90,44,YES,URGENT: Deploy traffic police immediately

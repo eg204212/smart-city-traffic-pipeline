@@ -28,12 +28,12 @@ default_args = {
 }
 
 def extract_traffic_data(**context):
-    """Extract yesterday's traffic data from PostgreSQL"""
+    """Extract today's traffic data from PostgreSQL"""
     logger.info("📥 Extracting traffic data from PostgreSQL...")
     
     hook = PostgresHook(postgres_conn_id='postgres_default')
     
-    # Get yesterday's data
+    # Get today's data so a manual trigger generates a report immediately
     query = """
         SELECT 
             sensor_id,
@@ -44,7 +44,7 @@ def extract_traffic_data(**context):
             traffic_status,
             hour_of_day
         FROM traffic_data
-        WHERE DATE(event_time) = CURRENT_DATE - INTERVAL '1 day'
+        WHERE DATE(event_time) = CURRENT_DATE
         ORDER BY event_time;
     """
     
@@ -180,7 +180,7 @@ def store_daily_report(**context):
         """
         
         hook.run(insert_query, parameters=(
-            datetime.now().date() - timedelta(days=1),
+            datetime.now().date(),
             row['sensor_id'],
             int(row['hour']),
             int(row['total_vehicles']),
