@@ -7,14 +7,28 @@ Scheduled to run nightly at 11:59 PM
 """
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
 from datetime import datetime, timedelta
 import pandas as pd
+import psycopg2
 import logging
 import os
+import subprocess
+import sys
 
 logger = logging.getLogger(__name__)
+
+DB_CONFIG = {
+    'host': os.getenv('POSTGRES_HOST', 'postgres'),
+    'database': os.getenv('POSTGRES_DB', 'trafficdb'),
+    'user': os.getenv('POSTGRES_USER', 'airflow'),
+    'password': os.getenv('POSTGRES_PASSWORD', 'airflow'),
+    'port': os.getenv('POSTGRES_PORT', '5432'),
+}
+
+
+def get_db_connection():
+    """Create a direct PostgreSQL connection for the DAG."""
+    return psycopg2.connect(**DB_CONFIG)
 
 # DAG default arguments
 default_args = {
@@ -31,8 +45,6 @@ def extract_traffic_data(**context):
     """Extract today's traffic data from PostgreSQL"""
     logger.info("📥 Extracting traffic data from PostgreSQL...")
     
-    hook = PostgresHook(postgres_conn_id='postgres_default')
-    
     # Get today's data so a manual trigger generates a report immediately
     query = """
         SELECT 
@@ -48,7 +60,9 @@ def extract_traffic_data(**context):
         ORDER BY event_time;
     """
     
-    df = hook.get_pandas_df(query)
+    with get_db_connection() as conn:
+        df = pd.read_sql_query(query, conn)
+
     logger.info(f"✅ Extracted {len(df)} records")
     
     # Save to XCom for next task
@@ -157,38 +171,41 @@ def store_daily_report(**context):
     daily_totals = df.groupby('sensor_id').agg({
         'vehicle_count': 'sum',
         'avg_speed': 'mean'
-    }).reset_index()
+    }).reset_index().rename(columns={
+        'vehicle_count': 'total_daily_vehicles',
+        'avg_speed': 'avg_daily_speed'
+    })
     
     report = report.merge(daily_totals, on='sensor_id')
-    
-    # Prepare for database insert
-    hook = PostgresHook(postgres_conn_id='postgres_default')
-    
-    for _, row in report.iterrows():
-        insert_query = """
-            INSERT INTO daily_traffic_reports 
-            (report_date, sensor_id, peak_hour, peak_hour_vehicle_count, 
-             total_daily_vehicles, avg_daily_speed, total_critical_alerts, requires_intervention)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (report_date, sensor_id) DO UPDATE SET
-                peak_hour = EXCLUDED.peak_hour,
-                peak_hour_vehicle_count = EXCLUDED.peak_hour_vehicle_count,
-                total_daily_vehicles = EXCLUDED.total_daily_vehicles,
-                avg_daily_speed = EXCLUDED.avg_daily_speed,
-                total_critical_alerts = EXCLUDED.total_critical_alerts,
-                requires_intervention = EXCLUDED.requires_intervention;
-        """
-        
-        hook.run(insert_query, parameters=(
-            datetime.now().date(),
-            row['sensor_id'],
-            int(row['hour']),
-            int(row['total_vehicles']),
-            int(row['vehicle_count']),
-            float(row['avg_speed']),
-            int(row['critical_alerts']),
-            bool(row['requires_intervention'])
-        ))
+
+    insert_query = """
+        INSERT INTO daily_traffic_reports 
+        (report_date, sensor_id, peak_hour, peak_hour_vehicle_count, 
+         total_daily_vehicles, avg_daily_speed, total_critical_alerts, requires_intervention)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (report_date, sensor_id) DO UPDATE SET
+            peak_hour = EXCLUDED.peak_hour,
+            peak_hour_vehicle_count = EXCLUDED.peak_hour_vehicle_count,
+            total_daily_vehicles = EXCLUDED.total_daily_vehicles,
+            avg_daily_speed = EXCLUDED.avg_daily_speed,
+            total_critical_alerts = EXCLUDED.total_critical_alerts,
+            requires_intervention = EXCLUDED.requires_intervention;
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            for _, row in report.iterrows():
+                cursor.execute(insert_query, (
+                    datetime.now().date(),
+                    row['sensor_id'],
+                    int(row['hour']),
+                    int(row['total_vehicles']),
+                    int(row['total_daily_vehicles']),
+                    float(row['avg_daily_speed']),
+                    int(row['critical_alerts']),
+                    bool(row['requires_intervention'])
+                ))
+        conn.commit()
     
     logger.info("✅ Daily report stored successfully")
 
@@ -209,6 +226,27 @@ def generate_csv_report(**context):
     logger.info(f"✅ CSV report saved: {csv_path}")
     
     return csv_path
+
+
+def generate_full_reports(**context):
+    """Run the standalone report generators so the mounted reports folder is populated."""
+    logger.info("📄 Generating analytical report artifacts...")
+
+    env = os.environ.copy()
+    env.setdefault('POSTGRES_HOST', 'postgres')
+    env.setdefault('POSTGRES_DB', 'trafficdb')
+    env.setdefault('POSTGRES_USER', 'airflow')
+    env.setdefault('POSTGRES_PASSWORD', 'airflow')
+    env.setdefault('POSTGRES_PORT', '5432')
+
+    reports_dir = '/opt/airflow/reports'
+    generate_report_script = os.path.join(reports_dir, 'generate_report.py')
+    analytical_report_script = os.path.join(reports_dir, 'analytical_report.py')
+
+    subprocess.run([sys.executable, generate_report_script], check=True, env=env)
+    subprocess.run([sys.executable, analytical_report_script], check=True, env=env, cwd=reports_dir)
+
+    logger.info("✅ Analytical report files generated")
 
 # Define the DAG
 with DAG(
@@ -250,6 +288,13 @@ with DAG(
         provide_context=True,
     )
 
+    full_reports_task = PythonOperator(
+        task_id='generate_full_reports',
+        python_callable=generate_full_reports,
+        provide_context=True,
+    )
+
     # Define task dependencies
-    extract_task >> analyze_task >> recommendations_task >> [store_task, csv_report_task]
+    extract_task >> analyze_task >> recommendations_task >> store_task
+    store_task >> [csv_report_task, full_reports_task]
 

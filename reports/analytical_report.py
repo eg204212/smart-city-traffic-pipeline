@@ -15,8 +15,8 @@ DB_CONFIG = {
     'dbname': 'trafficdb',
     'user': 'airflow',
     'password': 'airflow',
-    'host': 'localhost',
-    'port': 5432
+    'host': os.getenv('POSTGRES_HOST', 'localhost'),
+    'port': int(os.getenv('POSTGRES_PORT', '5432'))
 }
 
 def get_traffic_data():
@@ -194,9 +194,12 @@ def generate_analytical_table():
     
     return pd.DataFrame(analysis)
 
-def generate_complete_analytical_report(output_dir='reports'):
+def generate_complete_analytical_report(output_dir=None):
     """Generate complete analytical report with all deliverables"""
     
+    if output_dir is None:
+        output_dir = os.path.dirname(os.path.abspath(__file__))
+
     os.makedirs(output_dir, exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     

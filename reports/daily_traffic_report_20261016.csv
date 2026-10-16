@@ -1,0 +1,5 @@
+sensor_id,peak_hour,requires_intervention,priority,reasons
+J1_Galle_Road,4,True,HIGH,Multiple alerts: 168
+J2_Duplication_Road,4,True,HIGH,Multiple alerts: 214
+J3_Baseline_Road,4,True,HIGH,Multiple alerts: 122
+J4_Marine_Drive,4,True,HIGH,Multiple alerts: 105

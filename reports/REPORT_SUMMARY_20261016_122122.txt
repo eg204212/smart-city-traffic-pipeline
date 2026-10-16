@@ -3,14 +3,14 @@
               ANALYTICAL REPORT SUMMARY
 ======================================================================
 
-Report Generated: 2026-02-10 11:06:46
-Data Period: 2026-02-07 17:38:36.973711 to 2026-02-10 03:52:05.636594
+Report Generated: 2026-10-16 12:21:42
+Data Period: 2026-03-08 02:47:16.980165 to 2026-10-16 12:21:13.872955
 
 ----------------------------------------------------------------------
 OVERALL STATISTICS
 ----------------------------------------------------------------------
-Total Traffic Records: 1,808
-Total Critical Alerts (Speed < 10 km/h): 259
+Total Traffic Records: 43,543
+Total Critical Alerts (Speed < 10 km/h): 5,939
 Junctions Monitored: 4
 Date Range: 3 day(s)
 
@@ -19,34 +19,34 @@ JUNCTION-WISE ANALYSIS
 ----------------------------------------------------------------------
 
 📍 J1 Galle Road
-   Peak Hour: 3:00 (32727 vehicles)
-   Average Speed: 32.4 km/h
-   Congestion Index: 4.13
-   Critical Alerts: 60
+   Peak Hour: 6:00 (201900 vehicles)
+   Average Speed: 32.7 km/h
+   Congestion Index: 6.03
+   Critical Alerts: 1608
    Intervention: YES
    ⚠️  URGENT: Deploy traffic police immediately
 
 📍 J2 Duplication Road
-   Peak Hour: 3:00 (27644 vehicles)
-   Average Speed: 30.9 km/h
-   Congestion Index: 3.86
-   Critical Alerts: 90
+   Peak Hour: 6:00 (168772 vehicles)
+   Average Speed: 31.8 km/h
+   Congestion Index: 5.57
+   Critical Alerts: 2034
    Intervention: YES
    ⚠️  URGENT: Deploy traffic police immediately
 
 📍 J3 Baseline Road
-   Peak Hour: 3:00 (21649 vehicles)
-   Average Speed: 32.8 km/h
-   Congestion Index: 2.56
-   Critical Alerts: 65
+   Peak Hour: 6:00 (133872 vehicles)
+   Average Speed: 34.0 km/h
+   Congestion Index: 3.61
+   Critical Alerts: 1214
    Intervention: YES
    ⚠️  URGENT: Deploy traffic police immediately
 
 📍 J4 Marine Drive
-   Peak Hour: 3:00 (18181 vehicles)
-   Average Speed: 34.9 km/h
-   Congestion Index: 1.90
-   Critical Alerts: 44
+   Peak Hour: 6:00 (112086 vehicles)
+   Average Speed: 34.4 km/h
+   Congestion Index: 2.88
+   Critical Alerts: 1083
    Intervention: YES
    ⚠️  URGENT: Deploy traffic police immediately
 

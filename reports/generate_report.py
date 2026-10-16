@@ -14,8 +14,8 @@ DB_CONFIG = {
     'dbname': 'trafficdb',
     'user': 'airflow',
     'password': 'airflow',
-    'host': '127.0.0.1',
-    'port': 5432
+    'host': os.getenv('POSTGRES_HOST', '127.0.0.1'),
+    'port': int(os.getenv('POSTGRES_PORT', '5432'))
 }
 
 def get_traffic_data(days=7):

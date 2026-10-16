@@ -19,8 +19,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize Kafka Producer
-# Get Kafka host from environment variable or use localhost
-kafka_host = os.getenv('KAFKA_HOST', 'kafka:9092')
+# Use localhost when running locally; Docker Compose overrides this inside containers.
+kafka_host = os.getenv('KAFKA_HOST', 'localhost:9092')
 producer = KafkaProducer(
     bootstrap_servers=[kafka_host],
     value_serializer=lambda v: json.dumps(v).encode('utf-8'),
